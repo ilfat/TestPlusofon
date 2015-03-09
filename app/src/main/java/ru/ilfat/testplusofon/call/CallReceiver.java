@@ -1,17 +1,16 @@
-package ru.ilfat.testplusofon;
+package ru.ilfat.testplusofon.call;
 
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
-import android.os.Looper;
-import android.util.Log;
 import android.view.KeyEvent;
-import android.view.Window;
 import android.view.WindowManager;
 
 import java.util.Date;
 import java.util.List;
+
+import ru.ilfat.testplusofon.CallInfoActivity;
 
 /**
  * Created by userocker on 08.03.2015.
@@ -42,13 +41,21 @@ public class CallReceiver extends PhonecallReceiver {
     /*
      * From http://stackoverflow.com/a/16221978/3085512
      */
-    void pickupPhone()
-    {
+    void pickupPhone() {
         Intent buttonUp = new Intent(Intent.ACTION_MEDIA_BUTTON);
         buttonUp.putExtra(Intent.EXTRA_KEY_EVENT, new KeyEvent(
                 KeyEvent.ACTION_UP, KeyEvent.KEYCODE_HEADSETHOOK));
         ctx.sendOrderedBroadcast(buttonUp, "android.permission.CALL_PRIVILEGED");
     }
+
+    void startCallInfoActivity() {
+        Intent i = new Intent(ctx, CallInfoActivity.class);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        i.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
+        i.putExtra(CallInfoActivity.EXTRA_PHONE_NUMBER, Long.parseLong(number));
+        ctx.startActivity(i);
+    }
+
     /**
      * From http://stackoverflow.com/a/14457786/3085512
      */
@@ -59,23 +66,17 @@ public class CallReceiver extends PhonecallReceiver {
                         .getRunningTasks(1);
                 String topActivityName = tasks.get(0).topActivity
                         .getClassName();
-                if (!topActivityName.equals(MainActivity.class.getName())) {
+                if (!topActivityName.equals(CallInfoActivity.class.getName())) {
                     // Try to show on top until user dismiss this activity
-
                     pickupPhone();
 
-                    Intent i = new Intent(ctx, MainActivity.class);
-                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    i.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
-                    i.putExtra("number", Long.parseLong(number));
-                    ctx.startActivity(i);
+                    startCallInfoActivity();
+
                     dismissHandler();
                 }
                 sendEmptyMessageDelayed(MSG_ID_CHECK_TOP_ACTIVITY,
                         DELAY_INTERVAL);
             }
         }
-
-        ;
     };
 }

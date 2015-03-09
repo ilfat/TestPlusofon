@@ -25,38 +25,28 @@ import java.io.IOException;
 import ru.ilfat.testplusofon.json.AddRequest;
 import ru.ilfat.testplusofon.json.ApiResponse;
 import ru.ilfat.testplusofon.json.GetRequest;
+import ru.ilfat.testplusofon.json.Person;
 
 
-public class MainActivity extends ActionBarActivity {
+public class CallInfoActivity extends ActionBarActivity {
+    public final static String EXTRA_PHONE_NUMBER = "phoneNumber";
+    final static String NUMBER_NOT_RECOGNIZED = "Номер не распознан";
+    final static long NUMBER_EMPTY = 0L;
 
-    final String NUMBER_NOT_RECOGNIZED = "Номер не распознан";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Window window = getWindow();
-        window.addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
         final View progressBar = findViewById(R.id.loadInfoProgress);
         final TextView infoText = (TextView) findViewById(R.id.infoText);
         new AsyncTask() {
             @Override
             protected Object doInBackground(Object[] params) {
-//                try {
-//                    HttpURLConnection connection = (HttpURLConnection) new URL("http://109.107.169.222:8080").openConnection();
-//                    connection.setRequestMethod("POST");
-
-//                } catch (MalformedURLException notImportant) {
-//                }
-//                catch (IOException e)
-//                {
-//                    return e.getMessage();
-//                }
-
-                Long phone = getIntent().getLongExtra("number", 0L);
-                if (phone != 0)
-                    return postData(phone);
-                else return
-                        NUMBER_NOT_RECOGNIZED;
+                String result = NUMBER_NOT_RECOGNIZED;
+                Long phone = getIntent().getLongExtra(EXTRA_PHONE_NUMBER, NUMBER_EMPTY);
+                if (phone != NUMBER_EMPTY)
+                    result = postData(phone);
+                return result;
             }
 
             @Override
@@ -72,53 +62,29 @@ public class MainActivity extends ActionBarActivity {
         HttpClient httpclient = new DefaultHttpClient();
         HttpPost httppost = new HttpPost("http://109.107.169.222:8080/get");
 
-        String result = "nonono";
+        String result = NUMBER_NOT_RECOGNIZED;
         try {
             httppost.setEntity(new StringEntity(new Gson().toJson(new GetRequest(phone)), "UTF-8"));
-//            httppost.setEntity(new StringEntity(new Gson().toJson(new AddRequest(79370049787L, "Ильфат", "Абдуллин")), "UTF-8"));
             // Execute HTTP Post Request
             HttpResponse response = httpclient.execute(httppost);
             Header[] headers = response.getHeaders("Content-Length");
             int contentLength = Integer.parseInt(headers[0].getValue());
             byte[] bytes = new byte[contentLength];
             response.getEntity().getContent().read(bytes);
-            result = new String(bytes, "UTF-8");
+            String requestResult = new String(bytes, "UTF-8");
 
-            ApiResponse apiResponse = new Gson().fromJson(result, ApiResponse.class);
+            ApiResponse apiResponse = new Gson().fromJson(requestResult, ApiResponse.class);
+            Person person = apiResponse.getPerson();
 
-            result = apiResponse.getPerson().getSurname() + " " + apiResponse.getPerson().getName();
+            result = person.getSurname() + " " + person.getName();
         } catch (ClientProtocolException e) {
-            // TODO Auto-generated catch block
+            result = "Ошибка HTTP";
         } catch (IOException e) {
             result = "Ошибка соединения с сервером";
-        }
-        catch (NullPointerException e)
-        {
+        } catch (NullPointerException e) {
             result = NUMBER_NOT_RECOGNIZED;
         }
         return result;
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
     }
 }
 
